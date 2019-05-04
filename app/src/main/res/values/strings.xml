@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">RPoL Monitor</string>
+    <string name="channel_name">RPoL Monitor</string>
+    <string name="channel_description">RPoL Monitor notifications</string>
+    <string name="settings">Settings</string>
+    <string-array name="update_intervals">
+        <item>1</item>
+        <item>2</item>
+        <item>5</item>
+        <item>10</item>
+        <item>15</item>
+        <item>30</item>
+        <item>60</item>
+    </string-array>
+</resources>
