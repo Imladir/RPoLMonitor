@@ -5,7 +5,7 @@ RPoLMonitor is a small android app that connects to the RPoL website and warns y
 ## Installation
 
 The application is not yet available on the Play Store, which means:
-- You need to download it from here: https://drive.google.com/open?id=10uKPE3KC8xZgRKjiuvXrKAO8kxT-xzSf
+- You need to download it from here: https://github.com/Imladir/RPoLMonitor/blob/master/RPoLMonitor.apk
 - Your device will probably warn you about potential security issues (you'll have to tell it that yes, it's ok to install this, really).
 - It should run on most relatively recent devices, but I can't promise much of anything.
 
