@@ -27,6 +27,8 @@ import com.rpol.monitor.network.BoardStatusUpdate;
 import com.rpol.monitor.network.UpdateScheduler;
 
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class ActivityMain extends AppCompatActivity {
@@ -45,7 +47,6 @@ public class ActivityMain extends AppCompatActivity {
         // Initialise the scheduler
         SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
         Settings.setUpdate_interval(sp.getInt(Settings.PREFS_UPDATE_INTERVAL, 1));
-        updateBoards = UpdateScheduler.get(this);
 
         // Go to login screen if we're not authenticated, updates the boards otherwise
         if (Settings.isLoggedIn()) {
@@ -55,6 +56,15 @@ public class ActivityMain extends AppCompatActivity {
             Intent myIntent = new Intent(this, ActivitySettings.class);
             startActivity(myIntent);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d("XXX", "Called resume on ActivityMain");
+        BoardStatusUpdate status = new BoardStatusUpdate(this);
+        status.execute();
+        updateBoards = UpdateScheduler.get(this);
     }
 
     // She the menu
@@ -100,6 +110,11 @@ public class ActivityMain extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
         mAdapter = new BoardViewAdapter(boards);
         recyclerView.setAdapter(mAdapter);
+
+        SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//dd/MM/yyyy
+        Date now = new Date();
+        String strDate = sdfDate.format(now);
+        ((TextView)findViewById(R.id.tvLastUpdate)).setText("Last update:\n" + strDate);
 
         // Check for new notifications
         Log.d("XXX", "Updating notification manager");

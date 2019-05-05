@@ -26,6 +26,7 @@ public class UpdateScheduler implements Runnable {
         if (instance == null) {
             instance = new UpdateScheduler(parent);
         }
+        instance.parent = parent;
         return instance;
     }
 

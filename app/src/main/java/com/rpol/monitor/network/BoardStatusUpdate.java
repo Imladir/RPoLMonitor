@@ -61,7 +61,7 @@ public class BoardStatusUpdate extends AsyncTask<Void, Integer, List<BoardItem>>
             }
 
             // Get the board / game information
-            pattern = Pattern.compile(".*?href=\\\"(?<url>[^\\\\s]*?)\\\" title='.*?'>(?<name>.*?)<\\/a>.*?nowrap.*?>(?<gm>[a-zA-Z0-9]+).*?(?:(?<status>red|blue|purple)'><b>)?(?<posts>\\d+)[^0-9]*$");
+            pattern = Pattern.compile(".*?href=\\\"([^\\\\s]*?)\\\" title='.*?'>(.*?)<\\/a>.*?nowrap.*?>([a-zA-Z0-9]+).*?(?:(red|blue|purple)'><b>)?(\\d+)[^0-9]*$");
             for (String row : rows) {
                 matcher = pattern.matcher(row);
                 while (matcher.find()) {
