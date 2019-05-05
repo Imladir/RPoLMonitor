@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -48,10 +49,19 @@ public class ActivityMain extends AppCompatActivity {
         SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
         Settings.setUpdate_interval(sp.getInt(Settings.PREFS_UPDATE_INTERVAL, 1));
 
+        // Configure refresh
+        final SwipeRefreshLayout srlRefreshBoard = findViewById(R.id.srlRefreshBoard);
+        srlRefreshBoard.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                trigger_update();
+                srlRefreshBoard.setRefreshing(false);
+            }
+        });
+
         // Go to login screen if we're not authenticated, updates the boards otherwise
         if (Settings.isLoggedIn()) {
-            BoardStatusUpdate status = new BoardStatusUpdate(this);
-            status.execute();
+            trigger_update();
         } else {
             Intent myIntent = new Intent(this, ActivitySettings.class);
             startActivity(myIntent);
@@ -62,9 +72,13 @@ public class ActivityMain extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         Log.d("XXX", "Called resume on ActivityMain");
+        trigger_update();
+        updateBoards = UpdateScheduler.get(this);
+    }
+
+    public void trigger_update() {
         BoardStatusUpdate status = new BoardStatusUpdate(this);
         status.execute();
-        updateBoards = UpdateScheduler.get(this);
     }
 
     // She the menu
