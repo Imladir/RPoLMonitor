@@ -78,13 +78,12 @@ public class Authenticator extends AsyncTask<String, Integer, Boolean> {
                         res = true;
                         Settings.logIn();
                         Settings.setNickname(nick);
-                        UpdateScheduler.get(null).start();
                     }
                 }
             }
-            Log.d("XXX", "Finished authenticating");
+            Log.d("RPoLMonitor", "Finished authenticating");
         } catch (Exception e) {
-            Log.e("XXX", e.toString());
+            Log.e("RPoLMonitor", e.toString());
         } finally {
             if (conn != null)
                 conn.disconnect();

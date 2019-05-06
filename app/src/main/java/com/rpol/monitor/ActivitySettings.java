@@ -14,7 +14,6 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-import com.rpol.monitor.R;
 import com.rpol.monitor.helpers.Settings;
 import com.rpol.monitor.network.Authenticator;
 import com.rpol.monitor.network.UpdateScheduler;
@@ -62,7 +61,7 @@ public class ActivitySettings extends AppCompatActivity {
                 UpdateScheduler.get(null).update_interval(new_interval);
                 SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
                 sp.edit().putInt(Settings.PREFS_UPDATE_INTERVAL, new_interval).apply();
-                Log.d("XXX", "New saved interval = " +  sp.getInt(Settings.PREFS_UPDATE_INTERVAL, 1));
+                Log.d("RPoLMonitor", "New saved interval = " +  sp.getInt(Settings.PREFS_UPDATE_INTERVAL, 1));
             }
 
             @Override
@@ -115,7 +114,7 @@ public class ActivitySettings extends AppCompatActivity {
             ((TextView)findViewById(R.id.tvLoggedin)).setText("You are logged in as " + Settings.getNickname());
             ((ConstraintLayout)findViewById(R.id.clLogin)).setVisibility(View.GONE);
             ((ConstraintLayout) findViewById(R.id.clLoggedin)).setVisibility(View.VISIBLE);
-            Log.d("XXX", "Successfully logged in");
+            Log.d("RPoLMonitor", "Successfully logged in");
             Intent myIntent = new Intent(this, ActivityMain.class);
             startActivity(myIntent);
         } else {

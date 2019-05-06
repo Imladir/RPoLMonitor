@@ -33,7 +33,7 @@ public class UpdateScheduler implements Runnable {
     // Initialises the scheduler and starts it
     public void start() {
         if (Settings.isLoggedIn()) {
-            Log.d("XXX", "Starting scheduler");
+            Log.d("RPoLMonitor", "Starting scheduler");
             futureUpdate = scheduler.scheduleAtFixedRate(this,
                     Settings.getUpdate_interval(),
                     Settings.getUpdate_interval(),
@@ -44,14 +44,14 @@ public class UpdateScheduler implements Runnable {
     // Stops the scheduler (on log out)
     public void stop() {
         if (futureUpdate != null) {
-            Log.d("XXX", "Stopping scheduler");
+            Log.d("RPoLMonitor", "Stopping scheduler");
             futureUpdate.cancel(false);
         }
     }
 
     // Stops the scheduler, clears tasks, then recreates it with a new update interval
     public void update_interval(int new_interval) {
-        Log.d("XXX", "Updating scheduler. Old value = " + Settings.getUpdate_interval() + " | New value = " + new_interval);
+        Log.d("RPoLMonitor", "Updating scheduler. Old value = " + Settings.getUpdate_interval() + " | New value = " + new_interval);
         if (new_interval != Settings.getUpdate_interval()) {
             stop();
             Settings.setUpdate_interval(new_interval);
@@ -61,7 +61,7 @@ public class UpdateScheduler implements Runnable {
 
     // Performs the boards update
     public void run() {
-        Log.d("XXX", "Running board update from scheduler");
+        Log.d("RPoLMonitor", "Running board update from scheduler");
         BoardStatusUpdate status = new BoardStatusUpdate(parent);
         status.execute();
     }

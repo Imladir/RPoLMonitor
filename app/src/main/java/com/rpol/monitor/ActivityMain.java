@@ -1,9 +1,11 @@
 package com.rpol.monitor;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -18,8 +20,11 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.rpol.monitor.helpers.AlarmReceiver;
 import com.rpol.monitor.helpers.BoardItem;
 import com.rpol.monitor.helpers.NotificationsManager;
 import com.rpol.monitor.helpers.Settings;
@@ -36,18 +41,21 @@ public class ActivityMain extends AppCompatActivity {
     private RecyclerView recyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private UpdateScheduler updateBoards;
+    private PendingIntent pendingIntent;
+    private AlarmManager alarmManager = null;
+    private UpdateScheduler updateScheduler = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d("YYY", "Creating the activity");
+        Log.d("RPoLMonitor", "Creating the activity");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         createNotificationChannel();
 
-        // Initialise the scheduler
-        SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
-        Settings.setUpdate_interval(sp.getInt(Settings.PREFS_UPDATE_INTERVAL, 1));
+        updateScheduler = UpdateScheduler.get(this);
+        // Retrieve a PendingIntent that will perform a broadcast
+        Intent alarmIntent = new Intent(this, AlarmReceiver.class);
+        pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, 0);
 
         // Configure refresh
         final SwipeRefreshLayout srlRefreshBoard = findViewById(R.id.srlRefreshBoard);
@@ -69,11 +77,47 @@ public class ActivityMain extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d("RPoLMonitor", "Called pause on ActivityMain");
+        updateScheduler.stop();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
-        Log.d("XXX", "Called resume on ActivityMain");
-        trigger_update();
-        updateBoards = UpdateScheduler.get(this);
+        Log.d("RPoLMonitor", "Called resume on ActivityMain");
+        if (Settings.isLoggedIn()) {
+            startAlarm();
+            trigger_update();
+            updateScheduler = UpdateScheduler.get(this);
+            updateScheduler.start();
+        } else {
+            cancelAlarm();
+        }
+    }
+
+    public void startAlarm() {
+        if (Settings.isLoggedIn()) {
+            // Initialise the scheduler
+            Log.d("RPoLMonitor", "Starting alarm");
+            int interval = Settings.getUpdate_interval() * 60 * 1000;
+
+            alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), interval, pendingIntent);
+        }
+    }
+
+    public void cancelAlarm() {
+        if (alarmManager != null) {
+            alarmManager.cancel(pendingIntent);
+            Log.d("RPoLMonitor", "Stopped alarm");
+        }
+    }
+
+    public void resetAlarm() {
+        cancelAlarm();
+        startAlarm();
     }
 
     public void trigger_update() {
@@ -105,7 +149,7 @@ public class ActivityMain extends AppCompatActivity {
 
     // Updates the display of the boards, checks for new notification
     public void update_boards(List<BoardItem> boards) {
-        Log.d("XXX", "Recreating table");
+        Log.d("RPoLMonitor", "Recreating table");
 
         String msg = MessageFormat.format("Welcome {0}. Here''s your RPoL status.",
                 Settings.getNickname());
@@ -130,13 +174,7 @@ public class ActivityMain extends AppCompatActivity {
         String strDate = sdfDate.format(now);
         ((TextView)findViewById(R.id.tvLastUpdate)).setText("Last update:\n" + strDate);
 
-        // Check for new notifications
-        Log.d("XXX", "Updating notification manager");
-        if (NotificationsManager.get().update_notification(boards)) {
-            send_notification(NotificationsManager.ACTIVE_BOARD_CHANNEL,
-                              NotificationsManager.get().get_message());
-        }
-
+        Log.d("RPoLMonitor", "Finished updating boards");
     }
 
     // Defines how notifications should be sent on the phone by the application
@@ -154,29 +192,5 @@ public class ActivityMain extends AppCompatActivity {
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }
-    }
-
-    // Creates and sends the notifications
-    public void send_notification(int notification_id, String msg) {
-        // Create an explicit intent for an Activity in your app
-        Intent intent = new Intent(this, ActivityMain.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Settings.CHANNEL_ID)
-                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_LIGHTS | Notification.DEFAULT_VIBRATE)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle("New Activity on RPoL")
-                .setContentText(msg)
-                .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText(msg))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true);
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-
-        notificationManager.notify(notification_id, builder.build());
-
     }
 }

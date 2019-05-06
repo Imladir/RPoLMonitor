@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.rpol.monitor.ActivityMain;
 import com.rpol.monitor.helpers.BoardItem;
+import com.rpol.monitor.helpers.NotificationsManager;
 import com.rpol.monitor.helpers.Settings;
 
 import java.io.BufferedReader;
@@ -23,33 +24,37 @@ import javax.net.ssl.HttpsURLConnection;
 
 public class BoardStatusUpdate extends AsyncTask<Void, Integer, List<BoardItem>> {
 
-    private ActivityMain parent;
+    private ActivityMain parentActivity = null;
+    private NotificationsManager parentNotifier = null;
 
     public BoardStatusUpdate(ActivityMain parent) {
-        this.parent = parent;
+        this.parentActivity = parent;
+    }
+    public BoardStatusUpdate(NotificationsManager parent) {
+        this.parentNotifier = parent;
     }
 
     // Reads the homepage, parses the data, and retrieves the current boards states
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected List<BoardItem> doInBackground(Void... args) {
-        Log.d("XXX", "Beginning retrieving boards data");
+        Log.d("RPoLMonitor", "Beginning retrieving boards data");
         List<BoardItem> res = new ArrayList<BoardItem>();
 
         // Set up HTTP Request
         HttpsURLConnection conn = null;
         try {
-            Log.d("XXX", "Building connection");
+            Log.d("RPoLMonitor", "Building connection");
             URL url = new URL("https://rpol.net/");
             conn = (HttpsURLConnection) url.openConnection();
             conn.setRequestProperty("Cookie",
                     TextUtils.join(";", Settings.getCookieManager().getCookieStore().getCookies()));
             conn.connect();
-            Log.d("XXX", "Reading homepage");
+            Log.d("RPoLMonitor", "Reading homepage");
             String page_data = readStream(conn.getInputStream());
 
             // Parsing data for board names & status
-            Log.d("XXX", "Parsing homepage");
+            Log.d("RPoLMonitor", "Parsing homepage");
             List<String> rows = new ArrayList<String>();
 
             // Keep only the data regarding the games / boards
@@ -81,7 +86,7 @@ public class BoardStatusUpdate extends AsyncTask<Void, Integer, List<BoardItem>>
             }
 
         } catch (Exception e) {
-            Log.e("XXX", e.toString());
+            Log.e("RPoLMonitor", e.toString());
         } finally {
             if (conn != null)
                 conn.disconnect();
@@ -102,13 +107,17 @@ public class BoardStatusUpdate extends AsyncTask<Void, Integer, List<BoardItem>>
             }
             in.close();
         } catch (Exception e) {
-            Log.e("Parse error:", e.toString());
+            Log.e("PRPoLMonitor", e.toString());
         }
         return response.toString();
     }
 
     @Override
     protected void onPostExecute(List<BoardItem> boards) {
-        parent.update_boards(boards);
+
+        if (parentActivity != null)
+            parentActivity.update_boards(boards);
+        else
+            parentNotifier.update_notification(boards);
     }
 }
