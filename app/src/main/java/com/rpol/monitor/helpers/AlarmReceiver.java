@@ -8,8 +8,9 @@ import android.util.Log;
 public class AlarmReceiver extends BroadcastReceiver {
 
     @Override
-    public void onReceive(Context arg0, Intent arg1) {
-        Log.d("RPoLMonitor", "Received alarm, checking if needs to send notification");
-        NotificationsManager.get().check_update(arg0);
+    public void onReceive(Context context, Intent intent) {
+        Log.d("RPoLMonitor", "Received alarm, creating service");
+        Intent notificationChecker = new Intent(context, NotificationsService.class);
+        context.startService(notificationChecker);
     }
 }

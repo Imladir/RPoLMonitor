@@ -1,7 +1,11 @@
 package com.rpol.monitor;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.SystemClock;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,6 +18,7 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.rpol.monitor.helpers.AlarmReceiver;
 import com.rpol.monitor.helpers.Settings;
 import com.rpol.monitor.network.Authenticator;
 import com.rpol.monitor.network.UpdateScheduler;
@@ -61,6 +66,7 @@ public class ActivitySettings extends AppCompatActivity {
                 UpdateScheduler.get(null).update_interval(new_interval);
                 SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
                 sp.edit().putInt(Settings.PREFS_UPDATE_INTERVAL, new_interval).apply();
+
                 Log.d("RPoLMonitor", "New saved interval = " +  sp.getInt(Settings.PREFS_UPDATE_INTERVAL, 1));
             }
 
@@ -103,6 +109,8 @@ public class ActivitySettings extends AppCompatActivity {
         UpdateScheduler.get(null).stop();
         ((ConstraintLayout)findViewById(R.id.clLogin)).setVisibility(View.VISIBLE);
         ((ConstraintLayout)findViewById(R.id.clLoggedin)).setVisibility(View.GONE);
+        SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
+        sp.edit().remove(Settings.UID_COOKIE).apply();
     }
 
     // Invoked at the end of the (async) authentication process

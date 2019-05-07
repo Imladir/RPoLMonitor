@@ -1,6 +1,7 @@
 package com.rpol.monitor.network;
 
 
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -75,6 +76,8 @@ public class Authenticator extends AsyncTask<String, Integer, Boolean> {
                     Settings.getCookieManager().getCookieStore().add(null, HttpCookie.parse(cookie).get(0));
                     // If there's a cookie with UID, then the login was successful
                     if (cookie.startsWith("uid=")) {
+                        SharedPreferences sp = parent.getSharedPreferences(Settings.PREFS, parent.MODE_PRIVATE);
+                        sp.edit().putString(Settings.UID_COOKIE, cookie).apply();
                         res = true;
                         Settings.logIn();
                         Settings.setNickname(nick);

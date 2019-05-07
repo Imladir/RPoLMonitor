@@ -1,16 +1,17 @@
 package com.rpol.monitor;
 
 import android.app.AlarmManager;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Build;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
+import android.os.SystemClock;
+import android.support.annotation.RequiresApi;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -20,18 +21,17 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.rpol.monitor.helpers.AlarmReceiver;
 import com.rpol.monitor.helpers.BoardItem;
-import com.rpol.monitor.helpers.NotificationsManager;
+import com.rpol.monitor.helpers.NotificationsService;
 import com.rpol.monitor.helpers.Settings;
 import com.rpol.monitor.ui.BoardViewAdapter;
 import com.rpol.monitor.network.BoardStatusUpdate;
 import com.rpol.monitor.network.UpdateScheduler;
 
+import java.net.HttpCookie;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -41,10 +41,9 @@ public class ActivityMain extends AppCompatActivity {
     private RecyclerView recyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager layoutManager;
-    private PendingIntent pendingIntent;
-    private AlarmManager alarmManager = null;
     private UpdateScheduler updateScheduler = null;
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("RPoLMonitor", "Creating the activity");
@@ -53,9 +52,6 @@ public class ActivityMain extends AppCompatActivity {
         createNotificationChannel();
 
         updateScheduler = UpdateScheduler.get(this);
-        // Retrieve a PendingIntent that will perform a broadcast
-        Intent alarmIntent = new Intent(this, AlarmReceiver.class);
-        pendingIntent = PendingIntent.getBroadcast(this, 0, alarmIntent, 0);
 
         // Configure refresh
         final SwipeRefreshLayout srlRefreshBoard = findViewById(R.id.srlRefreshBoard);
@@ -67,6 +63,16 @@ public class ActivityMain extends AppCompatActivity {
             }
         });
 
+
+        SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
+        // Relog if possible
+        if (sp.contains(Settings.UID_COOKIE)) {
+            Settings.logIn();
+            Settings.getCookieManager().getCookieStore().add(null, HttpCookie.parse(sp.getString(Settings.UID_COOKIE, "")).get(0));
+            Settings.setNickname(sp.getString(Settings.PREFS_NICK, ""));
+            resetAlarm();
+        }
+
         // Go to login screen if we're not authenticated, updates the boards otherwise
         if (Settings.isLoggedIn()) {
             trigger_update();
@@ -74,6 +80,34 @@ public class ActivityMain extends AppCompatActivity {
             Intent myIntent = new Intent(this, ActivitySettings.class);
             startActivity(myIntent);
         }
+    }
+
+    private void setAlarm() {
+        Context context = getApplicationContext();
+        Intent alarmReceiver = new Intent(context, AlarmReceiver.class);
+        alarmReceiver.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, alarmReceiver, PendingIntent.FLAG_CANCEL_CURRENT);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        int interval = Settings.getUpdate_interval() * 60 * 1000;
+        alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime(),
+                interval,
+                pendingIntent);
+        Log.d("RPoLMonitor", "Alarm is set");
+    }
+
+    private void stopAlarm() {
+        Context context = getApplicationContext();
+        Intent alarmReceiver = new Intent(context, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, alarmReceiver, PendingIntent.FLAG_CANCEL_CURRENT);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        alarmManager.cancel(pendingIntent);
+        Log.d("RPoLMonitor", "Alarm is cancelled");
+    }
+
+    private void resetAlarm() {
+        stopAlarm();
+        setAlarm();
     }
 
     @Override
@@ -88,36 +122,12 @@ public class ActivityMain extends AppCompatActivity {
         super.onResume();
         Log.d("RPoLMonitor", "Called resume on ActivityMain");
         if (Settings.isLoggedIn()) {
-            startAlarm();
+            Settings.reset(getApplicationContext());
+            resetAlarm();
             trigger_update();
             updateScheduler = UpdateScheduler.get(this);
             updateScheduler.start();
-        } else {
-            cancelAlarm();
         }
-    }
-
-    public void startAlarm() {
-        if (Settings.isLoggedIn()) {
-            // Initialise the scheduler
-            Log.d("RPoLMonitor", "Starting alarm");
-            int interval = Settings.getUpdate_interval() * 60 * 1000;
-
-            alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), interval, pendingIntent);
-        }
-    }
-
-    public void cancelAlarm() {
-        if (alarmManager != null) {
-            alarmManager.cancel(pendingIntent);
-            Log.d("RPoLMonitor", "Stopped alarm");
-        }
-    }
-
-    public void resetAlarm() {
-        cancelAlarm();
-        startAlarm();
     }
 
     public void trigger_update() {

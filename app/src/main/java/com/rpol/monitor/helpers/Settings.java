@@ -1,5 +1,8 @@
 package com.rpol.monitor.helpers;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+
 import java.net.CookieManager;
 
 public class Settings {
@@ -9,6 +12,7 @@ public class Settings {
     public static final String PREFS_PWD = "PREFS_PWD";
     public static final String PREFS_SAVE_PWD = "PREFS_SAVE_PWD";
     public static final String PREFS_UPDATE_INTERVAL = "PREFS_UPDATE_INTERVAL";
+    public static final String UID_COOKIE = "UID_COOKIE";
     // Connection settings
     private static Boolean logged_in = false;
     private static String nickname = "";
@@ -50,5 +54,11 @@ public class Settings {
             cookieManager = new CookieManager();
         }
         return cookieManager;
+    }
+
+    public static void reset(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(Settings.PREFS, context.MODE_PRIVATE);
+        Settings.nickname = sp.getString(Settings.PREFS_NICK, "");
+        Settings.update_interval = sp.getInt(Settings.PREFS_UPDATE_INTERVAL, 1);
     }
 }

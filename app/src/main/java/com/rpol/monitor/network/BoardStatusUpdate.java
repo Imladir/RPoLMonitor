@@ -8,7 +8,7 @@ import android.util.Log;
 
 import com.rpol.monitor.ActivityMain;
 import com.rpol.monitor.helpers.BoardItem;
-import com.rpol.monitor.helpers.NotificationsManager;
+import com.rpol.monitor.helpers.NotificationsService;
 import com.rpol.monitor.helpers.Settings;
 
 import java.io.BufferedReader;
@@ -25,12 +25,12 @@ import javax.net.ssl.HttpsURLConnection;
 public class BoardStatusUpdate extends AsyncTask<Void, Integer, List<BoardItem>> {
 
     private ActivityMain parentActivity = null;
-    private NotificationsManager parentNotifier = null;
+    private NotificationsService parentNotifier = null;
 
     public BoardStatusUpdate(ActivityMain parent) {
         this.parentActivity = parent;
     }
-    public BoardStatusUpdate(NotificationsManager parent) {
+    public BoardStatusUpdate(NotificationsService parent) {
         this.parentNotifier = parent;
     }
 
