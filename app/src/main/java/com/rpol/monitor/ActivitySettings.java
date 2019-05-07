@@ -1,11 +1,7 @@
 package com.rpol.monitor;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.SystemClock;
 import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -18,10 +14,9 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-import com.rpol.monitor.helpers.AlarmReceiver;
 import com.rpol.monitor.helpers.Settings;
 import com.rpol.monitor.network.Authenticator;
-import com.rpol.monitor.network.UpdateScheduler;
+import com.rpol.monitor.network.HomepageParser;
 
 import java.util.Arrays;
 import java.util.List;
@@ -63,7 +58,6 @@ public class ActivitySettings extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
                 String[] intervals = getResources().getStringArray(R.array.update_intervals);
                 int new_interval = Integer.parseInt(intervals[position]);
-                UpdateScheduler.get(null).update_interval(new_interval);
                 SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
                 sp.edit().putInt(Settings.PREFS_UPDATE_INTERVAL, new_interval).apply();
 
@@ -74,7 +68,6 @@ public class ActivitySettings extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> parentView) {
                 // nothing to do here, can't (shouldn't?) happen
             }
-
         });
     }
 
@@ -106,7 +99,6 @@ public class ActivitySettings extends AppCompatActivity {
         Settings.logOut();
         Settings.setNickname("");
         Settings.getCookieManager().getCookieStore().removeAll();
-        UpdateScheduler.get(null).stop();
         ((ConstraintLayout)findViewById(R.id.clLogin)).setVisibility(View.VISIBLE);
         ((ConstraintLayout)findViewById(R.id.clLoggedin)).setVisibility(View.GONE);
         SharedPreferences sp = getSharedPreferences(Settings.PREFS, MODE_PRIVATE);
@@ -123,6 +115,9 @@ public class ActivitySettings extends AppCompatActivity {
             ((ConstraintLayout)findViewById(R.id.clLogin)).setVisibility(View.GONE);
             ((ConstraintLayout) findViewById(R.id.clLoggedin)).setVisibility(View.VISIBLE);
             Log.d("RPoLMonitor", "Successfully logged in");
+            Log.d("RPoLMonitor", "Running board update post login");
+            HomepageParser parser = new HomepageParser();
+            parser.execute();
             Intent myIntent = new Intent(this, ActivityMain.class);
             startActivity(myIntent);
         } else {

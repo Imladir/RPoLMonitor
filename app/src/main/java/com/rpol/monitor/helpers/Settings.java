@@ -19,6 +19,7 @@ public class Settings {
     private static CookieManager cookieManager = null;
     // Notifications settings
     public static final String CHANNEL_ID = "com.rpol.monitor.notifications.ANDROID";
+    public static boolean SERVICE_STARTED = false;
     private static int update_interval = -1;
 
     public static Boolean isLoggedIn() {

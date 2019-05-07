@@ -12,6 +12,7 @@ import android.widget.TextView;
 import com.rpol.monitor.helpers.BoardItem;
 import com.rpol.monitor.R;
 
+import java.util.ArrayList;
 import java.util.List;
 
 // Defines how a board is displayed

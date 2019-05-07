@@ -6,9 +6,8 @@ import android.support.annotation.RequiresApi;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.rpol.monitor.ActivityMain;
 import com.rpol.monitor.helpers.BoardItem;
-import com.rpol.monitor.helpers.NotificationsService;
+import com.rpol.monitor.helpers.BoardStatus;
 import com.rpol.monitor.helpers.Settings;
 
 import java.io.BufferedReader;
@@ -22,39 +21,26 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.HttpsURLConnection;
 
-public class BoardStatusUpdate extends AsyncTask<Void, Integer, List<BoardItem>> {
-
-    private ActivityMain parentActivity = null;
-    private NotificationsService parentNotifier = null;
-
-    public BoardStatusUpdate(ActivityMain parent) {
-        this.parentActivity = parent;
-    }
-    public BoardStatusUpdate(NotificationsService parent) {
-        this.parentNotifier = parent;
-    }
+public class HomepageParser extends AsyncTask<Void, Integer, List<BoardItem>> {
 
     // Reads the homepage, parses the data, and retrieves the current boards states
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected List<BoardItem> doInBackground(Void... args) {
-        Log.d("RPoLMonitor", "Beginning retrieving boards data");
+        Log.d("RPoLMonitor", "Retrieving boards data");
         List<BoardItem> res = new ArrayList<BoardItem>();
 
         // Set up HTTP Request
         HttpsURLConnection conn = null;
         try {
-            Log.d("RPoLMonitor", "Building connection");
             URL url = new URL("https://rpol.net/");
             conn = (HttpsURLConnection) url.openConnection();
             conn.setRequestProperty("Cookie",
                     TextUtils.join(";", Settings.getCookieManager().getCookieStore().getCookies()));
             conn.connect();
-            Log.d("RPoLMonitor", "Reading homepage");
             String page_data = readStream(conn.getInputStream());
 
             // Parsing data for board names & status
-            Log.d("RPoLMonitor", "Parsing homepage");
             List<String> rows = new ArrayList<String>();
 
             // Keep only the data regarding the games / boards
@@ -84,7 +70,6 @@ public class BoardStatusUpdate extends AsyncTask<Void, Integer, List<BoardItem>>
                     res.add(item);
                 }
             }
-
         } catch (Exception e) {
             Log.e("RPoLMonitor", e.toString());
         } finally {
@@ -114,10 +99,6 @@ public class BoardStatusUpdate extends AsyncTask<Void, Integer, List<BoardItem>>
 
     @Override
     protected void onPostExecute(List<BoardItem> boards) {
-
-        if (parentActivity != null)
-            parentActivity.update_boards(boards);
-        else
-            parentNotifier.update_notification(boards);
+        BoardStatus.get().update_status(boards);
     }
 }
