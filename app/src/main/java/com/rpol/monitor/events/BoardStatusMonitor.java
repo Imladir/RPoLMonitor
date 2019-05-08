@@ -6,11 +6,10 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.rpol.monitor.ActivityMain;
@@ -52,6 +51,37 @@ public class BoardStatusMonitor extends Service implements BoardStatusListener {
         BoardStatus.get().addUpdateListener(this);
 
         Log.d("RPoLMonitor", "Starting service");
+
+        setForegroundNotification(BoardStatus.NOTHING_NEW);
+
+        return START_STICKY;
+    }
+
+    private void setForegroundNotification(String message) {
+        Notification notif = createNotification(BoardStatus.NOTHING_NEW);
+        startForeground(BoardStatusMonitor.FOREGROUND_SERVICE, notif);
+    }
+
+    private void updateNotification(boolean stealthyUpdate, String message) {
+        if (!stealthyUpdate)
+            destroyCurrentNotification();
+        Notification notif = createNotification(message);
+
+        Log.d("RPoLMonitor", "Sending new notification");
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(FOREGROUND_SERVICE, notif);
+    }
+
+    private void destroyCurrentNotification() {
+        // Remove previous notification if it exists
+        Log.d("RPoLMonitor", "Destroying previous notification");
+        stopForeground(true);
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(FOREGROUND_SERVICE);
+    }
+
+    private Notification createNotification(String message) {
+        // Create the new notification
         Intent notificationIntent = new Intent(this, ActivityMain.class);
         notificationIntent.setAction("MainAndOnlyAction");
         notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
@@ -59,22 +89,30 @@ public class BoardStatusMonitor extends Service implements BoardStatusListener {
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
                 notificationIntent, 0);
 
-        Notification.Builder builder = new Notification.Builder(this)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Settings.CHANNEL_ID)
                 .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_LIGHTS | Notification.DEFAULT_VIBRATE)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("RPoL Monitor")
                 .setTicker("RPoL Monitor")
-                .setContentText("Nothing new.")
+                .setContentText(message)
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(message))
                 .setContentIntent(pendingIntent)
-                .setOngoing(true);
+                .setOngoing(true)
+                .setOnlyAlertOnce(true);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             builder.setChannelId(Settings.CHANNEL_ID);
         }
 
-        startForeground(BoardStatusMonitor.FOREGROUND_SERVICE, builder.getNotification());
+        return builder.build();
+    }
 
-        return START_STICKY;
+    @Override
+    public void onBoardUpdate(boolean newActivity) {
+        Log.d("RPoLMonitor", "Received update event in service with newActivity = " + newActivity);
+        updateNotification(!newActivity, BoardStatus.get().getMessage());
     }
 
     // Initialises the scheduler and starts it
@@ -119,45 +157,5 @@ public class BoardStatusMonitor extends Service implements BoardStatusListener {
     public IBinder onBind(Intent intent) {
         // Used only in case of bound services.
         return null;
-    }
-
-    @Override
-    public void onBoardUpdate(boolean newActivity) {
-        Log.d("RPoLMonitor", "Received update event in service with newActivity = " + newActivity);
-        if (newActivity)
-            update_notification(BoardStatus.get().getMessage());
-    }
-
-    // Creates and sends the notifications
-    public void update_notification(String message) {
-        Log.d("RPoLMonitor", "Updating notification");
-
-        // Create the Foreground notification
-        Intent notificationIntent = new Intent(this, ActivityMain.class);
-        notificationIntent.setAction("MainAndOnlyAction");
-        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
-                notificationIntent, 0);
-        Notification.Builder builder = new Notification.Builder(this)
-                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_LIGHTS | Notification.DEFAULT_VIBRATE)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle("RPoL Monitor")
-                .setTicker("RPoL Monitor")
-                .setContentText(message)
-                .setContentIntent(pendingIntent)
-                .setOngoing(true);
-
-        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        if (message != BoardStatus.NOTHING_NEW)
-            builder.setSound(alarmSound);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder.setChannelId(Settings.CHANNEL_ID);
-        }
-
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(FOREGROUND_SERVICE, builder.getNotification());
-
     }
 }

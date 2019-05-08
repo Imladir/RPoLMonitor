@@ -14,13 +14,12 @@ public class BoardStatus {
     private static BoardStatus instance = null;
 
     private List<BoardStatusListener> listeners = new ArrayList<>();
-    private List<BoardItem> boards = null;
-    private Map<Integer, BoardItem.Status> active_boards;
+    private List<BoardItem> boards;
     private boolean newActivity = false;
     private String message = NOTHING_NEW;
 
     private BoardStatus() {
-        this.active_boards = new HashMap<>();
+        this.boards = new ArrayList<>();
     }
 
     public static BoardStatus get() {
@@ -37,10 +36,6 @@ public class BoardStatus {
         listeners.remove(listener);
     }
 
-    public boolean hasNew_activity() {
-        return newActivity;
-    }
-
     public String getMessage() {
         return message;
     }
@@ -55,18 +50,6 @@ public class BoardStatus {
         newActivity = false;
         String newMessage = "";
         for (BoardItem board : boards) {
-            // We read the messages here, the board is not new anymore
-            if (board.getStatus() == BoardItem.Status.Read && active_boards.containsKey(board.getGid())) {
-                active_boards.remove(board.getGid());
-            }
-            // There's some new activity here
-            else if (board.getStatus() != BoardItem.Status.Read) {
-                if (!active_boards.containsKey(board.getGid())
-                        || (active_boards.get(board.getGid()) != board.getStatus())) {
-                    Log.d("RPoLMonitor", "Board '" + board.getName() + "' status is " + board.getStatus());
-                    active_boards.put(board.getGid(), board.getStatus());
-                }
-            }
             // It might not be new since the last notification, but we didn't check it yet
             // so it still needs to appear in the updated notification
             if (board.getStatus() == BoardItem.Status.NewMessage)
@@ -77,12 +60,12 @@ public class BoardStatus {
                 newMessage += "You have new Message(s) and PM(s) on " + board.getName() + "\n";
         }
 
+        if ((newMessage != "") && (!newMessage.equals(message)))
+            newActivity = true;
+
         if (newMessage == "") {
             newMessage = NOTHING_NEW;
         }
-
-        if (newMessage != message)
-            newActivity = true;
 
         message = newMessage;
 
